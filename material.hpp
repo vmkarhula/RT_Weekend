@@ -59,8 +59,6 @@ public:
                         scattered = Ray(rec.p, reflected);
                         attenuation = albedo;
                         return (dot(scattered.direction(), rec.normal) > 0);
-
-
                     }
 
 public:

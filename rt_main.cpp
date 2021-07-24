@@ -6,6 +6,8 @@
 
 #include "camera.hpp"
 
+#include "material.hpp"
+
 #include <iostream>
 
 
@@ -42,9 +44,15 @@ color ray_color(const Ray& r, const Hittable& world, int depth){
 
     if(world.hit(r, 0.001, RT_Constants::infinity, rec)){
 
-        point3 target = rec.p + random_in_hemisphere(rec.normal);
-        return 0.5 * ray_color(Ray(rec.p, target - rec.p), world, depth - 1);
+        Ray scattered;
+        color attenuation;
+
+        if(rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+            return attenuation * ray_color(scattered, world, depth -1);
+        
+        return color(0, 0, 0);
     }
+
     
     vec3 unit_direction = unit_vector(r.direction());
     double t = 0.5*(unit_direction.y() + 1.0);
@@ -57,20 +65,27 @@ int main(int argc, char * argv[]){
 
     // Image
 
-    const double aspect_ratio = 16.0 / 9.0;
+    constexpr double aspect_ratio = 16.0 / 9.0;
    
-    const int image_width = 400;
-    const int image_height = static_cast<int>(image_width / aspect_ratio);
+    constexpr int image_width = 400;
+    constexpr int image_height = static_cast<int>(image_width / aspect_ratio);
 
-    const int samples_per_pixel = 100;
-    const int max_depth = 50;
+    constexpr int  samples_per_pixel = 100;
+    constexpr int max_depth = 50;
 
     // World
     Hittable_List world;
-    world.add(std::make_shared<Sphere>(point3(0,0,-1), 0.5));
-    world.add(std::make_shared<Sphere>(point3(0,-100.5, -1), 100));
+    
+    auto material_ground = std::make_shared<Lambertian>(color(0.8, 0.8, 0.0));
+    auto material_center = std::make_shared<Lambertian>(color(0.7, 0.3, 0.3));
+    auto material_left   = std::make_shared<Metal>(color(0.8, 0.8, 0.8));
+    auto material_right  = std::make_shared<Metal>(color(0.8, 0.6, 0.2));
 
-
+    world.add(std::make_shared<Sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(std::make_shared<Sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
+    world.add(std::make_shared<Sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
+    world.add(std::make_shared<Sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
+    
     // Camera
     Camera cam;
 
